@@ -10,7 +10,7 @@ export function Header() {
       <div className="container mx-auto flex flex-col flex-wrap items-center p-2 px-6 md:flex-row">
         <Link href="/" className="flex">
           <span className="title-font flex cursor-pointer items-center font-medium text-gray-900 md:mb-0">
-            <img
+            <Image
               src="/logo-full.png"
               alt="OpenSecurity Logo"
               width={150}
