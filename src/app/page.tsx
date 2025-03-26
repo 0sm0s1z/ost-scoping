@@ -27,9 +27,9 @@ export default function Chat() {
           <div className="teams-avatar">DM</div>
           <div className="teams-message-content teams-message-assistant">
             <p className="m-0">
-              Welcome to the Ellington Mineral Company's cybersecurity scoping
-              discussion. I'm Dade Murphy, the CISO. How can I help you with
-              planning the vulnerability assessment today?
+              Welcome to the Ellington Mineral Company&apos;s cybersecurity
+              scoping discussion. I&apos;m Dade Murphy, the CISO. How can I help
+              you with planning the vulnerability assessment today?
             </p>
           </div>
         </div>
