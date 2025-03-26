@@ -51,7 +51,7 @@ ol {
 
 @layer base {
   :root {
-    --background: none;
+    --background: white;
     --foreground: 0 0% 3.9%;
 
     --card: 0 0% 100%;
@@ -169,5 +169,47 @@ ol {
   }
   100% {
     transform: translateX(100%) scaleX(0.5);
+  }
+}
+
+@layer components {
+  .teams-header {
+    @apply bg-[#464775] text-white py-6 px-4 fixed top-0 w-full z-50 flex items-center justify-center;
+  }
+
+  .teams-header-content {
+    @apply flex items-center gap-4 max-w-4xl mx-auto w-full;
+  }
+
+  .teams-avatar {
+    @apply w-10 h-10 rounded-full bg-[#7B83EB] flex items-center justify-center text-white font-semibold;
+  }
+
+  .teams-chat-container {
+    @apply flex flex-col w-full h-[calc(100vh-140px)] max-w-4xl mx-auto pt-28 pb-20 px-4;
+  }
+
+  .teams-message {
+    @apply flex gap-3 mb-4 items-start;
+  }
+
+  .teams-message-content {
+    @apply bg-[#F5F5F5] rounded-lg p-3 max-w-[70%] relative;
+  }
+
+  .teams-message-user {
+    @apply bg-[#E8EBFA] self-end;
+  }
+
+  .teams-message-assistant {
+    @apply bg-[#F5F5F5];
+  }
+
+  .teams-input-container {
+    @apply fixed bottom-0 w-full bg-white border-t border-gray-200 p-4;
+  }
+
+  .teams-input {
+    @apply w-full max-w-4xl mx-auto flex items-center gap-2 bg-white rounded-lg border border-gray-300 p-2 focus-within:border-[#464775] focus-within:ring-1 focus-within:ring-[#464775];
   }
 }

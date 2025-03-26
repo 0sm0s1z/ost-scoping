@@ -1,39 +1,78 @@
 "use client";
 
-import { Header } from "@/components/Header";
 import { useChat } from "ai/react";
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat();
+
   return (
-    <>
-      <Header />
-      <div className="flex flex-col w-full max-w-md pt-24 pb-4 mx-auto stretch">
-       {"Welcome to the Ellison Mineral Company's Cybersecurity Scoping Chat. Use the input field below to communicate with our team and structure a scope of work for our upcoming cybersecurity engagement."}
+    <div className="min-h-screen bg-white">
+      {/* Teams-like header */}
+      <div className="teams-header">
+        <div className="teams-header-content">
+          <div className="teams-avatar">DM</div>
+          <div>
+            <h1 className="text-lg font-semibold m-0">Dade Murphy</h1>
+            <p className="text-sm text-gray-200 m-0">
+              CISO - Ellington Mineral Company
+            </p>
+          </div>
+        </div>
       </div>
-      <hr className="border-[#F89C27] w-full max-w-md mx-auto stretch" />
-      <div className="flex flex-col w-full max-w-md py-8 mx-auto stretch gap-4">
+
+      {/* Chat container */}
+      <div className="teams-chat-container">
+        {/* Welcome message */}
+        <div className="teams-message">
+          <div className="teams-avatar">DM</div>
+          <div className="teams-message-content teams-message-assistant">
+            <p className="m-0">
+              Welcome to the Ellington Mineral Company's cybersecurity scoping
+              discussion. I'm Dade Murphy, the CISO. How can I help you with
+              planning the vulnerability assessment today?
+            </p>
+          </div>
+        </div>
+
+        {/* Chat messages */}
         {messages.map((m) => (
-          <div key={m.id} className="whitespace-pre-wrap">
-            {m.role === "user" ? "Security Tester: " : "Ellison Mineral: "}
-            <hr className="py-2 border-[#F89C27]/50"/>
-            {m.toolInvocations ? (
-              <pre>{JSON.stringify(m.toolInvocations, null, 2)}</pre>
-            ) : (
-              <p>{m.content}</p>
-            )}
+          <div
+            key={m.id}
+            className={`teams-message ${
+              m.role === "user" ? "flex-row-reverse" : ""
+            }`}
+          >
+            {m.role === "assistant" && <div className="teams-avatar">DM</div>}
+            <div
+              className={`teams-message-content ${
+                m.role === "user"
+                  ? "teams-message-user"
+                  : "teams-message-assistant"
+              }`}
+            >
+              <p className="m-0 whitespace-pre-wrap">{m.content}</p>
+            </div>
           </div>
         ))}
+      </div>
 
-        <form onSubmit={handleSubmit}>
+      {/* Input container */}
+      <div className="teams-input-container">
+        <form onSubmit={handleSubmit} className="teams-input">
           <input
-            className="fixed text-gray-700 bottom-0 w-full max-w-md p-2 mb-8 shadow-xl border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 rounded-lg border px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex-1 border-0 bg-transparent p-2 text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-0"
             value={input}
-            placeholder="Say something..."
+            placeholder="Type your message..."
             onChange={handleInputChange}
           />
+          <button
+            type="submit"
+            className="rounded-md bg-[#464775] px-4 py-2 text-sm font-semibold text-white hover:bg-[#5B5C98] focus:outline-none focus:ring-2 focus:ring-[#464775] focus:ring-offset-2"
+          >
+            Send
+          </button>
         </form>
       </div>
-    </>
+    </div>
   );
 }
