@@ -2,7 +2,12 @@ import { openai } from "@ai-sdk/openai";
 import { generateObject } from "ai";
 import { z } from "zod";
 
-import { buildSystemPrompt, PERSONAS, type PersonaId } from "@/lib/canon";
+import {
+  buildSystemPrompt,
+  PERSONAS,
+  sanitizeChatText,
+  type PersonaId,
+} from "@/lib/canon";
 
 export const maxDuration = 30;
 
@@ -25,17 +30,19 @@ const replySchema = z.object({
       z.object({
         speakerId: z
           .enum(["belford", "murphy", "libby", "cook"])
-          .describe("Which Ellingson team member is speaking."),
+          .describe("Which participant is speaking."),
         text: z
           .string()
           .describe(
-            "That team member's chat message: short, human, Teams-style plain text.",
+            "Short Teams-style plain text (1–3 sentences). No markdown lists.",
           ),
       }),
     )
     .min(1)
     .max(2)
-    .describe("One message per speaker, at most two speakers per turn."),
+    .describe(
+      "Usually one message. A second message only for a brief redirect or disagreement.",
+    ),
 });
 
 export type InterviewReply = z.infer<typeof replySchema>;
@@ -111,7 +118,14 @@ export async function POST(req: Request) {
       messages: modelMessages,
     });
 
-    return Response.json(object);
+    const sanitized = {
+      messages: object.messages.map((m) => ({
+        ...m,
+        text: sanitizeChatText(m.text),
+      })),
+    };
+
+    return Response.json(sanitized);
   } catch (err) {
     console.error("chat route error:", err);
     return Response.json(

@@ -144,7 +144,7 @@ export function MessageThread({
               month: "long",
               day: "numeric",
             })}{" "}
-            · Lab simulation — every Ellingson participant is AI-played
+            · Lab simulation — participants are AI-played
           </span>
         </SystemMessage>
 
@@ -153,7 +153,17 @@ export function MessageThread({
         </div>
 
         {messages.map((m, index) => {
-          const prev = messages[index - 1];
+          if (m.role === "system") {
+            return (
+              <SystemMessage key={m.id}>
+                <strong>{m.text}</strong>
+              </SystemMessage>
+            );
+          }
+
+          const prev = [...messages.slice(0, index)]
+            .reverse()
+            .find((x) => x.role !== "system");
           const showHeader =
             m.role === "persona" &&
             (index === 0 ||

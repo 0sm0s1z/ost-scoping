@@ -6,24 +6,26 @@ import type { PersonaId } from "@/lib/canon";
 
 export type InterviewMessage = {
   id: string;
-  role: "user" | "persona";
+  role: "user" | "persona" | "system";
   speakerId?: PersonaId;
   text: string;
   at: Date;
 };
 
-const WELCOME: InterviewMessage = {
-  id: "welcome",
-  role: "persona",
-  speakerId: "murphy",
-  text: "Hey — thanks for jumping in. I'm Dade, senior security engineer here at Ellingson, and I'll be your main technical contact for the assessment. Eugene (our CISO), Kate from applications, and Paul from IT ops are in this chat too. Ask us whatever you need to scope the engagement.",
-  at: new Date(),
-};
-
 let counter = 0;
-function nextId() {
+function nextId(prefix = "m") {
   counter += 1;
-  return `m-${Date.now()}-${counter}`;
+  return `${prefix}-${Date.now()}-${counter}`;
+}
+
+function makeWelcome(): InterviewMessage {
+  return {
+    id: nextId("welcome"),
+    role: "persona",
+    speakerId: "murphy",
+    text: "Hey — thanks for jumping into the thread. Fire away with whatever you need to get this assessment scoped.",
+    at: new Date(),
+  };
 }
 
 function prefersReducedMotion(): boolean {
@@ -42,16 +44,21 @@ function typingDelay(text: string): number {
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export function useInterview() {
-  const [messages, setMessages] = useState<InterviewMessage[]>([WELCOME]);
+  const [messages, setMessages] = useState<InterviewMessage[]>(() => [
+    makeWelcome(),
+  ]);
   const [typingSpeaker, setTypingSpeaker] = useState<PersonaId | null>(null);
   const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const mounted = useRef(true);
+  const generation = useRef(0);
+  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     mounted.current = true;
     return () => {
       mounted.current = false;
+      abortRef.current?.abort();
     };
   }, []);
 
@@ -60,15 +67,23 @@ export function useInterview() {
       const text = raw.trim();
       if (!text || isBusy) return;
 
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+      const gen = generation.current;
+
       const userMessage: InterviewMessage = {
         id: nextId(),
         role: "user",
         text,
         at: new Date(),
       };
-      const history = [...messages, userMessage];
 
-      setMessages(history);
+      let historyForApi: InterviewMessage[] = [];
+      setMessages((prev) => {
+        historyForApi = [...prev, userMessage];
+        return historyForApi;
+      });
       setIsBusy(true);
       setError(null);
 
@@ -76,14 +91,19 @@ export function useInterview() {
         const res = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          signal: controller.signal,
           body: JSON.stringify({
-            messages: history.map((m) => ({
-              role: m.role,
-              speakerId: m.speakerId,
-              text: m.text,
-            })),
+            messages: historyForApi
+              .filter((m) => m.role === "user" || m.role === "persona")
+              .map((m) => ({
+                role: m.role === "user" ? "user" : "persona",
+                speakerId: m.speakerId,
+                text: m.text,
+              })),
           }),
         });
+
+        if (gen !== generation.current || controller.signal.aborted) return;
 
         const data = (await res.json()) as {
           messages?: { speakerId: PersonaId; text: string }[];
@@ -95,10 +115,22 @@ export function useInterview() {
         }
 
         for (const reply of data.messages) {
-          if (!mounted.current) return;
+          if (
+            !mounted.current ||
+            gen !== generation.current ||
+            controller.signal.aborted
+          ) {
+            return;
+          }
           setTypingSpeaker(reply.speakerId);
           await sleep(typingDelay(reply.text));
-          if (!mounted.current) return;
+          if (
+            !mounted.current ||
+            gen !== generation.current ||
+            controller.signal.aborted
+          ) {
+            return;
+          }
           setTypingSpeaker(null);
           setMessages((prev) => [
             ...prev,
@@ -112,6 +144,7 @@ export function useInterview() {
           ]);
         }
       } catch (err) {
+        if (controller.signal.aborted || gen !== generation.current) return;
         if (mounted.current) {
           setError(
             err instanceof Error
@@ -120,21 +153,43 @@ export function useInterview() {
           );
         }
       } finally {
-        if (mounted.current) {
+        if (
+          mounted.current &&
+          gen === generation.current &&
+          !controller.signal.aborted
+        ) {
           setTypingSpeaker(null);
           setIsBusy(false);
         }
       }
     },
-    [messages, isBusy],
+    [isBusy],
   );
 
   const resetConversation = useCallback(() => {
-    setMessages([{ ...WELCOME, at: new Date() }]);
-    setError(null);
+    abortRef.current?.abort();
+    abortRef.current = null;
+    generation.current += 1;
     setTypingSpeaker(null);
     setIsBusy(false);
+    setError(null);
+    setMessages([
+      {
+        id: nextId("system"),
+        role: "system",
+        text: "Interview restarted — previous messages cleared.",
+        at: new Date(),
+      },
+      makeWelcome(),
+    ]);
   }, []);
 
-  return { messages, typingSpeaker, isBusy, error, sendMessage, resetConversation };
+  return {
+    messages,
+    typingSpeaker,
+    isBusy,
+    error,
+    sendMessage,
+    resetConversation,
+  };
 }
