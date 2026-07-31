@@ -5,6 +5,7 @@ import {
   PERSONAS,
   RULES_OF_ENGAGEMENT,
   buildSystemPrompt,
+  sanitizeChatText,
 } from "./canon";
 
 describe("buildSystemPrompt", () => {
@@ -26,8 +27,19 @@ describe("buildSystemPrompt", () => {
     expect(prompt).toContain("Dade Murphy");
     expect(prompt).toContain("Kate Libby");
     expect(prompt).toContain("Paul Cook");
-    expect(prompt).toMatch(/Chief Information Security Officer/);
-    expect(prompt).toMatch(/Senior Security Engineer/);
+  });
+
+  it("assigns Dade as CISO and Eugene as external consultant", () => {
+    expect(prompt).toMatch(/Dade Murphy[\s\S]*Chief Information Security Officer|Murphy[\s\S]*CISO/i);
+    expect(prompt).toMatch(/Eugene Belford[\s\S]*[Cc]onsultant|computer fraud/i);
+    expect(prompt).toMatch(/Eugene Belford is NOT[\s\S]*CISO|NOT the CISO/i);
+  });
+
+  it("requires progressive disclosure rules", () => {
+    expect(prompt).toMatch(/Progressive disclosure/i);
+    expect(prompt).toMatch(/Vague asks/i);
+    expect(prompt).toMatch(/Precise asks/i);
+    expect(prompt).toMatch(/bullet/i);
   });
 
   it("includes Sirius and inventory uncertainty", () => {
@@ -42,9 +54,9 @@ describe("buildSystemPrompt", () => {
     expect(prompt).toMatch(/Vault/i);
   });
 
-  it("requires CISO approval for social engineering", () => {
+  it("requires CISO Murphy approval for social engineering", () => {
     expect(prompt).toMatch(/social engineering/i);
-    expect(prompt).toMatch(/CISO|Belford/i);
+    expect(prompt).toMatch(/Dade Murphy/);
   });
 });
 
@@ -68,16 +80,32 @@ describe("RULES_OF_ENGAGEMENT", () => {
     expect(joined).toContain("192.168.123.0/24");
     expect(joined).toMatch(/Denial-of-service|DoS/i);
     expect(joined).toMatch(/Social engineering/i);
-    expect(joined).toMatch(/CISO/i);
+    expect(joined).toMatch(/Dade Murphy|CISO/i);
     expect(joined).toMatch(/Sirius/i);
   });
 });
 
 describe("PERSONAS", () => {
-  it("maps expected roles", () => {
-    expect(PERSONAS.belford.title).toMatch(/Chief Information Security Officer/i);
-    expect(PERSONAS.murphy.title).toMatch(/Senior Security Engineer/i);
+  it("maps expected lab roles", () => {
+    expect(PERSONAS.murphy.title).toMatch(/Chief Information Security Officer/i);
+    expect(PERSONAS.belford.title).toMatch(/Consultant|Computer Fraud/i);
     expect(PERSONAS.libby.title).toMatch(/Application/i);
     expect(PERSONAS.cook.title).toMatch(/Operations/i);
+  });
+});
+
+describe("sanitizeChatText", () => {
+  it("collapses markdown bullet dumps into plain sentences", () => {
+    const raw = "High-level SOW:\n- Scope is 10.0.0.0/16\n- Non-destructive testing\n- No DoS";
+    const out = sanitizeChatText(raw);
+    expect(out).not.toMatch(/^-/m);
+    expect(out).toContain("10.0.0.0/16");
+    expect(out).toContain("Non-destructive");
+  });
+
+  it("leaves short plain replies alone", () => {
+    expect(sanitizeChatText("What part of the plan are you stuck on?")).toBe(
+      "What part of the plan are you stuck on?",
+    );
   });
 });
